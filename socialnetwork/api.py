@@ -1,4 +1,17 @@
-from django.db.models import Q, Exists, OuterRef, When, IntegerField, FloatField, Count, ExpressionWrapper, Case, Value, F, Prefetch
+from django.db.models import (
+    Q,
+    Exists,
+    OuterRef,
+    When,
+    IntegerField,
+    FloatField,
+    Count,
+    ExpressionWrapper,
+    Case,
+    Value,
+    F,
+    Prefetch,
+)
 
 from fame.models import Fame, FameLevels, FameUsers, ExpertiseAreas
 from socialnetwork.models import Posts, SocialNetworkUsers
@@ -17,7 +30,13 @@ def _get_social_network_user(user) -> SocialNetworkUsers:
     return user
 
 
-def timeline(user: SocialNetworkUsers, start: int = 0, end: int = None, published=True, community_mode=False):
+def timeline(
+    user: SocialNetworkUsers,
+    start: int = 0,
+    end: int = None,
+    published=True,
+    community_mode=False,
+):
     """Get the timeline of the user. Assumes that the user is authenticated."""
 
     if community_mode:
@@ -33,8 +52,6 @@ def timeline(user: SocialNetworkUsers, start: int = 0, end: int = None, publishe
         # add your code here
         #########################
 
-        #T1
-
     else:
         # in standard mode, posts of followed users are displayed
         _follows = user.follows.all()
@@ -44,7 +61,7 @@ def timeline(user: SocialNetworkUsers, start: int = 0, end: int = None, publishe
     if end is None:
         return posts[start:]
     else:
-        return posts[start:end+1]
+        return posts[start : end + 1]
 
 
 def search(keyword: str, start: int = 0, end: int = None, published=True):
@@ -59,7 +76,7 @@ def search(keyword: str, start: int = 0, end: int = None, published=True):
     if end is None:
         return posts[start:]
     else:
-        return posts[start:end+1]
+        return posts[start : end + 1]
 
 
 def follows(user: SocialNetworkUsers, start: int = 0, end: int = None):
@@ -68,7 +85,7 @@ def follows(user: SocialNetworkUsers, start: int = 0, end: int = None):
     if end is None:
         return _follows[start:]
     else:
-        return _follows[start:end+1]
+        return _follows[start : end + 1]
 
 
 def followers(user: SocialNetworkUsers, start: int = 0, end: int = None):
@@ -77,7 +94,7 @@ def followers(user: SocialNetworkUsers, start: int = 0, end: int = None):
     if end is None:
         return _followers[start:]
     else:
-        return _followers[start:end+1]
+        return _followers[start : end + 1]
 
 
 def follow(user: SocialNetworkUsers, user_to_follow: SocialNetworkUsers):
@@ -128,11 +145,71 @@ def submit_post(
 
     redirect_to_logout = False
 
-
     #########################
     # add your code here
     #########################
 
+    # a more obtuse way to get the fame levels assosciated with each user_expertise_area
+    # user_expertise_areas_fame_levels = {
+    #     user_expertise.label: Fame.objects.get(
+    #         user=user, expertise_area=user_expertise
+    #     ).fame_level.numeric_value
+    #     for user_expertise in user.expertise_area.all()
+    # }
+
+    # T1
+    # get the user_expertise areas of a user
+    user_expertise_areas = list(user.expertise_area.all())
+    # create a dictionary mapping each user_expertise to their fame level
+    user_expertise_areas_fame_levels = {}
+    for user_expertise in user_expertise_areas:
+        # get the fame level of each expertise area of the user
+        fame_level = Fame.objects.get(
+            user=user, expertise_area=user_expertise
+        ).fame_level.numeric_value
+        user_expertise_areas_fame_levels[user_expertise] = fame_level
+    for post_expertise_area in _expertise_areas:
+        post_expertise_area = post_expertise_area["expertise_area"]
+        # check if post expertise area is in user expertise areas
+        # and check if user expertise is negative for the expertise area in question
+        if (
+            post_expertise_area in user_expertise_areas_fame_levels
+            and user_expertise_areas_fame_levels[post_expertise_area] < 0
+        ):
+            post.published = False
+
+    # T2
+    for post_expertise_area in _expertise_areas:
+        post_expertise_area, post_truth_rating = (
+            post_expertise_area["expertise_area"],
+            post_expertise_area["truth_rating"],
+        )
+        if (
+            post_truth_rating
+            and post_truth_rating.numeric_value < 0
+            and post_expertise_area in user_expertise_areas
+        ):
+            try:
+                idx = user_expertise_areas.index(post_expertise_area)
+                user_expertise_area = user_expertise_areas[idx]
+                fame = Fame.objects.get(user=user, expertise_area=user_expertise_area)
+                fame.fame_level = fame.fame_level.get_next_lower_fame_level()
+                fame.save()
+            except ValueError:
+                user.is_active = False
+                user.save()
+                redirect_to_logout = True
+                posts = Posts.objects.filter(author__exact=user)
+                for post in posts:
+                    post.published = False
+                    post.save()
+        elif post_expertise_area not in user_expertise_areas:
+            confuser = FameLevels.objects.get(name="Confuser")
+            Fame.objects.create(
+                user=user, expertise_area=post_expertise_area, fame_level=confuser
+            )
+
+    # T2b
     post.save()
 
     return (
@@ -195,8 +272,8 @@ def bullshitters():
     # add your code here
     #########################
 
-
-
+    # T4
+    existing_expertise_areas = ExpertiseAreas.objects.all()
 
 
 def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
@@ -209,14 +286,12 @@ def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     #########################
 
 
-
 def leave_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     """Leave a specified community."""
     pass
     #########################
     # add your code here
     #########################
-
 
 
 def similar_users(user: SocialNetworkUsers):
@@ -227,4 +302,3 @@ def similar_users(user: SocialNetworkUsers):
     #########################
     # add your code here
     #########################
-
