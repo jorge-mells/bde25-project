@@ -6,7 +6,7 @@ from socialnetwork.models import Posts, SocialNetworkUsers
 
 # general methods independent of html and REST views
 # should be used by REST and html views
-#Hi 
+#Hi it's still me
 
 def _get_social_network_user(user) -> SocialNetworkUsers:
     """Given a FameUser, gets the social network user from the request. Assumes that the user is authenticated."""
