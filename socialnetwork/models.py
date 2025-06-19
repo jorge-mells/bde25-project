@@ -18,7 +18,9 @@ class SocialNetworkUsers(FameUsers):
     is_banned = models.BooleanField(default=False)
     # T4
     # use this member field to adapt the data model, DO NOT RENAME!
-    communities = None
+    communities = models.ManyToManyField(
+        ExpertiseAreas, symmetrical=False, related_name="member_of"
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"

@@ -2,6 +2,7 @@ from django.db.models import (
     Q,
     Exists,
     OuterRef,
+    QuerySet,
     When,
     IntegerField,
     FloatField,
@@ -51,7 +52,22 @@ def timeline(
         #########################
         # add your code here
         #########################
-
+        posts = Posts.objects.none()
+        user_communities = user.communities.all()
+        # get the community of the user to satisfy condition 2
+        for community in user_communities:
+            # get only posts of the user's comunity to satisfy condition 3
+            # ensure that the author is also in that community to satisfy condition 1
+            # make sure the post is published or it is the user's post
+            community_posts = Posts.objects.filter(
+                (Q(published=True) | Q(author=user)),
+                expertise_area_and_truth_ratings=community,
+                author__communities=community,
+            )
+            if posts is None:
+                posts = community_posts
+            else:
+                posts = posts | community_posts
     else:
         # in standard mode, posts of followed users are displayed
         _follows = user.follows.all()
@@ -194,6 +210,12 @@ def submit_post(
                 user_expertise_area = user_expertise_areas[idx]
                 fame = Fame.objects.get(user=user, expertise_area=user_expertise_area)
                 fame.fame_level = fame.fame_level.get_next_lower_fame_level()
+                # T4d
+                super_pro_numeric = FameLevels.objects.get(
+                    name="Super Pro"
+                ).numeric_value
+                if fame.fame_level.numeric_value < super_pro_numeric:
+                    leave_community(user, user_expertise_area)
                 fame.save()
             except ValueError:
                 user.is_active = False
@@ -203,13 +225,16 @@ def submit_post(
                 for post in posts:
                     post.published = False
                     post.save()
-        elif post_expertise_area not in user_expertise_areas:
+        elif (
+            post_expertise_area not in user_expertise_areas
+            and post_truth_rating
+            and post_truth_rating.numeric_value < 0
+        ):
             confuser = FameLevels.objects.get(name="Confuser")
             Fame.objects.create(
                 user=user, expertise_area=post_expertise_area, fame_level=confuser
             )
 
-    # T2b
     post.save()
 
     return (
@@ -272,8 +297,26 @@ def bullshitters():
     # add your code here
     #########################
 
-    # T4
+    # T3
+    # get all the existing expertise areas
     existing_expertise_areas = ExpertiseAreas.objects.all()
+    result = {}
+    for existing_area in existing_expertise_areas:
+        # get all users who have the given expertise area, but with fame_level below 0
+        # make sure it is correctly ordered
+        users_with_negative_fame = Fame.objects.filter(
+            expertise_area__exact=existing_area, fame_level__numeric_value__lt=0
+        ).order_by("-fame_level", "-user__date_joined")
+        tmp_list = []
+        for fame_entry in users_with_negative_fame:
+            # put each user, fame_level pair in a dictionary, and collate all
+            # this in a list for a given expertise area
+            tmp = {}
+            tmp["user"] = fame_entry.user
+            tmp["fame_level_numeric"] = fame_entry.fame_level.numeric_value
+            tmp_list.append(tmp)
+        result[existing_area] = tmp_list
+    return result
 
 
 def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
@@ -285,6 +328,9 @@ def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     # add your code here
     #########################
 
+    # T4
+    user.communities.add(community)
+
 
 def leave_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     """Leave a specified community."""
@@ -292,6 +338,9 @@ def leave_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     #########################
     # add your code here
     #########################
+
+    # T4
+    user.communities.remove(community)
 
 
 def similar_users(user: SocialNetworkUsers):
@@ -302,3 +351,28 @@ def similar_users(user: SocialNetworkUsers):
     #########################
     # add your code here
     #########################
+
+    _E_i = user.expertise_area.all()
+    size_E_i = len(_E_i)
+
+    def f(user: FameUsers, e: ExpertiseAreas) -> float:
+        try:
+            fame = Fame.objects.get(user=user, expertise_area=e)
+            return fame.fame_level.numeric_value
+        except Fame.DoesNotExist:
+            return float("inf")
+
+    def omega(f: float, f_j: float) -> int:
+        return int(abs(f - f_j) <= 100)
+
+    def s(user_j: FameUsers) -> float:
+        return (1 / size_E_i) * sum([omega(f(user, e), f(user_j, e)) for e in _E_i])
+
+    result = list(FameUsers.objects.exclude(id=user.pk))
+    for user_j in result:
+        ss = s(user_j)
+        user_j.similarity = s(user_j)
+
+    result = list(filter(lambda x: x.similarity != 0, result))
+    result.sort(key=lambda x: (x.similarity, x.date_joined), reverse=True)
+    return result
