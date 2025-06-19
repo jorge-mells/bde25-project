@@ -26,6 +26,41 @@
         </form>
     </div>
     <br>
+    <div class="card" style="margin-bottom: 20px; margin-left: 40px; border: 0">
+        <form action="/sn/api/toggle_community_mode" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">{{ mode.actual }}</button>
+            <label> Click the button to change to {{ mode.alternate }}</label>
+        </form>
+    </div>
+    <br>
+    {% if mode.actual == "Community Mode" %}
+    <h3 style="margin-left: 40px; margin-bottom: 20px">Join Communities</h3>
+    <div class="card" style="margin-bottom: 20px; margin-left: 40px; border: 0">
+        <form action="/sn/api/join_community" method="post">
+            {% csrf_token %}
+            <div class="flex-container flex-wrap justify-content-start gap-3" style="">
+                {% for community in communities.join_communities %}
+                    <button type="submit" class="btn btn-secondary" name="community" value="{{ community.label }}">{{ community.label }}</button>
+                    <br>
+                {% endfor %}
+            </div>
+        </form>
+    </div>
+    <h3 style="margin-left: 40px; margin-bottom: 20px">My Communities(Click to leave)</h3>
+    <div class="card" style="margin-bottom: 20px; margin-left: 40px; border: 0">
+        <form action="/sn/api/leave_community" method="post">
+            {% csrf_token %}
+            <div class="flex-container flex-wrap justify-content-start gap-3" style="">
+                {% for community in communities.leave_communities %}
+                    <button type="submit" class="btn btn-secondary" name="community" value="{{ community.label }}">{{ community.label }}</button>
+                    <br>
+                {% endfor %}
+            </div>
+        </form>
+    </div>
+    {% endif %}
+    <br>
     <br>
     <h3 style="margin-left: 40px">Timeline</h3>
     {% for post in posts %}

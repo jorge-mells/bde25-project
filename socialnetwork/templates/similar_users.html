@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Similar Users{% endblock %}
+{% block body %}
+<br>
+<h3 style="margin-left: 40px">Similar Users</h3>
+{% for similar_user in similar_users %}
+<div class="card {% if similar_user.similarity > 0.0 %}ok{% else %}bullshit{% endif %}"
+    style="margin-bottom: 20px; margin-left: 40px; margin-right: 40px;">
+    <div style="margin-left: 20px" class="flex-container">
+        <b><a href="/fame/html/fame?userid={{ similar_user.id }}">{{ similar_user.username }}</a></b>
+        &nbsp;
+        <span style="color:gray">{{ similar_user.email }}</span>
+        &nbsp;
+        &nbsp;
+    </div>
+
+    <h5 style="margin-left: 20px">Similarity Score: {{ similar_user.similarity }}</h5>
+    <br>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Bullshitters{% endblock %}
+{% block body %}
+    <br>
+    <h3 style="margin-left: 40px">Bullshitters</h3>
+    {% for expertise_area, bullshitters_list in bullshitters.items %}
+        <h4 style="margin-left: 60px">{{ expertise_area }}</h4>
+        {% for b in bullshitters_list %}
+            <div class="card"
+                 style="margin-bottom: 20px;
+                        margin-left: 60px;
+                        margin-right: 40px">
+                <div class="flex-container">
+                    <div class="bullshit">
+                        <b>{{ b.user }}</b>: {{ b.fame_level_numeric }}
+                    </div>
+                    <br>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+{% endblock %}
