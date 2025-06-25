@@ -3,12 +3,12 @@
 This is the bde project 2025. You can add more to the readme to explain the project better.
 
 # IMPORTANT
-I have untracked the database because I think it should not be version
-controlled. I think we should all work with different versions of the database, but to
-access the initial data, I have marked it as untracked. If you can't run tests
-or do anything, it might be because of this. To be able to use the database,
-just remove the .data suffix. You can run `mv db.sqlite3.data db.sqlite3` to do
-this.
+I have removed the files that are repeatedly being recreated from tracking. We might have to recreate them before
+submitting our final projects though.
+
+# MORE TESTS
+You can try running my tests with this command `python manage.py test famesocialnetwork.georgetests`. I just copied
+their tests but made the seed random. Hopefully it helps.
 
 ## Preliminary
 
