@@ -126,39 +126,36 @@ def submit_post(
 
     redirect_to_logout = False
 
-
-    #########################
     # add your code here
+    # T1 :Check negative fame in user's profile
     for epa in _expertise_areas:
-        area = epa["expertise_area"],
+        area = epa["expertise_area"]  # correct assignment
         if Fame.objects.filter(
-            user=user,
-            expertise_area=area,
-            fame_level__numeric_value__lt=0,
+                user=user,
+                expertise_area=area,
+                fame_level__numeric_value__lt=0
         ).exists():
             post.published = False
             break
 
-        for epa in _expertise_areas:
-            if epa["truth_rating"].numeric_value < 0:
-                area = epa["expertise_area"]
-        try:
-            fame = Fame.objects.get(user=user,expertise_area=area)
+    #  T2:Handle post truth-rating and fame update
+    for epa in _expertise_areas:
+        if epa["truth_rating"].numeric_value < 0:
+            area = epa["expertise_area"]
             try:
-                fame.fame_level = fame.fame_level.get_next_lower_fame_level()
-                fame.save()
-            except ValueError:
-                user.is_active = False,
-                user.save()
-                Posts.objects.filter(author=user).update(published=False)
-                redirect_to_logout = True
-        except Fame.DoesNotExist:
-            confuser = FameLevels.objects.get(name="Confuser")
-            Fame.objects.create(user=user,expertise_area=area,fame_level=confuser)
-            break;
-
-
-    #########################
+                fame = Fame.objects.get(user=user, expertise_area=area)
+                try:
+                    fame.fame_level = fame.fame_level.get_next_lower_fame_level()
+                    fame.save()
+                except ValueError:
+                    user.is_active = False
+                    user.save()
+                    Posts.objects.filter(author=user).update(published=False)
+                    redirect_to_logout = True
+            except Fame.DoesNotExist:
+                confuser = FameLevels.objects.get(name="Confuser")
+                Fame.objects.create(user=user, expertise_area=area, fame_level=confuser)
+            break
 
     post.save()
 
