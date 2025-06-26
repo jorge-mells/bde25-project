@@ -1,3 +1,4 @@
+from django.contrib.admin.templatetags.admin_list import result_list
 from django.db.models import Q, Exists, OuterRef, When, IntegerField, FloatField, Count, ExpressionWrapper, Case, Value, F, Prefetch
 
 from fame.models import Fame, FameLevels, FameUsers, ExpertiseAreas
@@ -214,13 +215,27 @@ def bullshitters():
     users with the lowest fame are shown first, in case there is a tie, within that tie sort by date_joined
     (most recent first). Note that expertise areas with no expert may be omitted.
     """
-    pass
-    #########################
+
+
     # add your code here
-    #########################
+    output = {}
+    for area in ExpertiseAreas.objects.all():
+        entries = Fame.objects.filter(
+            expertise_area=area,
+            fame_level__numeric_value__lt=0
+        ).select_related('user', 'fame_level') \
+            .order_by("fame_level__numeric_value", "-user__date_joined")
 
+        if entries.exists():
+            result_list = []
+            for entry in entries:
+                result_list.append({
+                    "user": entry.user,
+                    "fame_level_numeric": entry.fame_level.numeric_value
+                })
+            output[area] = result_list
 
-
+    return output
 
 
 def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
