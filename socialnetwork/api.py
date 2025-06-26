@@ -129,6 +129,35 @@ def submit_post(
 
     #########################
     # add your code here
+    for epa in _expertise_areas:
+        area = epa["expertise_area"],
+        if Fame.objects.filter(
+            user=user,
+            expertise_area=area,
+            fame_level__numeric_value__lt=0,
+        ).exists():
+            post.published = False
+            break
+
+        for epa in _expertise_areas:
+            if epa["truth_rating"].numeric_value < 0:
+                area = epa["expertise_area"]
+        try:
+            fame = Fame.objects.get(user=user,expertise_area=area)
+            try:
+                fame.fame_level = fame.fame_level.get_next_lower_fame_level()
+                fame.save()
+            except ValueError:
+                user.is_active = False,
+                user.save()
+                Posts.objects.filter(author=user).update(published=False)
+                redirect_to_logout = True
+        except Fame.DoesNotExist:
+            confuser = FameLevels.objects.get(name="Confuser")
+            Fame.objects.create(user=user,expertise_area=area,fame_level=confuser)
+            break;
+
+
     #########################
 
     post.save()
