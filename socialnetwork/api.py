@@ -30,9 +30,15 @@ def timeline(user: SocialNetworkUsers, start: int = 0, end: int = None, publishe
         # 4. the post is published or the user is the author
 
         pass
-        #########################
+
         # add your code here
-        #########################
+        communities = user.communities.all()
+        post = Posts.objects.filter(
+            Q(expertise_area_and_truth_ratings__in=communities) ,
+            Q(author__communities__in=communities),
+            Q(published=True)|Q(author = user)
+        ).distinct().order_by("-submitted")
+
 
     else:
         # in standard mode, posts of followed users are displayed
@@ -129,15 +135,8 @@ def submit_post(
 
     # add your code here
     # T1 :Check negative fame in user's profile
-    for epa in _expertise_areas:
-        area = epa["expertise_area"]  # correct assignment
-        if Fame.objects.filter(
-                user=user,
-                expertise_area=area,
-                fame_level__numeric_value__lt=0
-        ).exists():
-            post.published = False
-            break
+
+
 
     #  T2:Handle post truth-rating and fame update
     for epa in _expertise_areas:
@@ -148,6 +147,11 @@ def submit_post(
                 try:
                     fame.fame_level = fame.fame_level.get_next_lower_fame_level()
                     fame.save()
+                    #T4: remove the user if is current famelevel < super pro
+                    super_pro_value = FameLevels.objects.get(name="Super Pro").numeric_value
+                    if fame.fame_level.numeric_value < super_pro_value:
+                        leave_community(user, area)
+
                 except ValueError:
                     user.is_active = False
                     user.save()
@@ -245,6 +249,8 @@ def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     pass
     #########################
     # add your code here
+    user.communities.add(community)
+    user.save()
     #########################
 
 
@@ -254,6 +260,8 @@ def leave_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     pass
     #########################
     # add your code here
+    user.communities.remove(community)
+
     #########################
 
 

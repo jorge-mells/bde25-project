@@ -2,6 +2,7 @@ import random as rnd
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import ManyToManyField
 
 from fame.models import ExpertiseAreas, FameUsers
 from socialnetwork.magic_AI import classify_into_expertise_areas_and_check_for_bullshit
@@ -18,7 +19,9 @@ class SocialNetworkUsers(FameUsers):
     is_banned = models.BooleanField(default=False)
     # T4
     # use this member field to adapt the data model, DO NOT RENAME!
-    communities = None
+    communities = ManyToManyField(
+        ExpertiseAreas, related_name="members",blank=True
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"
