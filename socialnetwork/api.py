@@ -251,6 +251,41 @@ def similar_users(user: SocialNetworkUsers):
     there is a tie, within that tie sort by date_joined (most recent first)"""
     pass
     #########################
-    # add your code here
+    
+# Step 1: Get fame values of the input user
+    user_fame = Fame.objects.filter(user=user)
+    user_fame_dict = {f.expertise_area_id: f.fame_level.numeric_value for f in user_fame}
+    user_expertise_ids = set(user_fame_dict.keys())
+
+    if not user_expertise_ids:
+        return FameUsers.objects.none()
+
+# Step 2: Prepare similarity scores for all other users
+    other_users = FameUsers.objects.exclude(id=user.id)
+    similarity_scores = []
+
+    for other in other_users:
+        other_fame = Fame.objects.filter(user=other, expertise_area_id__in=user_expertise_ids)
+        match_count = 0
+
+        for fame in other_fame:
+            user_value = user_fame_dict.get(fame.expertise_area_id, float('inf'))
+            other_value = fame.fame_level.numeric_value
+            if abs(user_value - other_value) <= 100:
+                match_count += 1
+
+        similarity = match_count / len(user_expertise_ids)
+        if similarity > 0:
+            similarity_scores.append((other, similarity))
+
+# Step 3: Sort by similarity and date_joined
+    similarity_scores.sort(key=lambda x: (-x[1], -x[0].date_joined.timestamp()))
+
+    # Step 4: Annotate users with similarity
+    for user_obj, sim in similarity_scores:
+        user_obj.similarity = sim
+
+    return [user_obj for user_obj, _ in similarity_scores]
+
     #########################
 
