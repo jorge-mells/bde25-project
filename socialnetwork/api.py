@@ -189,7 +189,36 @@ def bullshitters():
     """
     pass
     #########################
-    # add your code here
+    
+result = defaultdict(list)
+
+    # Get all Fame entries with negative fame first (cost-optimization)
+    negative_fame_entries = Fame.objects.select_related("user", "expertise_area", "fame_level").filter(
+        fame_level__numeric_value__lt=0
+    )
+
+    # Group by expertise area
+    for fame in negative_fame_entries:
+        result[fame.expertise_area].append({
+            "user": fame.user,
+            "fame_level_numeric": fame.fame_level.numeric_value,
+            "date_joined": fame.user.date_joined,  # used only for sorting, in case of ties in the sorting- next step
+        })
+
+    # Sort each list and remove date_joined from final output
+    for area in list(result.keys()):
+        sorted_users = sorted(
+            result[area],
+            key=lambda x: (x["fame_level_numeric"], -x["date_joined"].timestamp())
+        )
+        result[area] = [
+            {"user": u["user"], "fame_level_numeric": u["fame_level_numeric"]}
+            for u in sorted_users
+        ]
+
+    return dict(result)
+
+
     #########################
 
 
