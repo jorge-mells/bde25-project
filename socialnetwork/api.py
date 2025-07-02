@@ -162,35 +162,22 @@ def submit_post(
     # add your code here
     #########################
 
-    # a more obtuse way to get the fame levels assosciated with each user_expertise_area
-    # user_expertise_areas_fame_levels = {
-    #     user_expertise.label: Fame.objects.get(
-    #         user=user, expertise_area=user_expertise
-    #     ).fame_level.numeric_value
-    #     for user_expertise in user.expertise_area.all()
-    # }
-
     # T1
-    # get the user_expertise areas of a user
-    user_expertise_areas = list(user.expertise_area.all())
-    # create a dictionary mapping each user_expertise to their fame level
-    user_expertise_areas_fame_levels = {}
-    for user_expertise in user_expertise_areas:
-        fame_level = Fame.objects.get(
-            user=user, expertise_area=user_expertise
-        ).fame_level.numeric_value
-        user_expertise_areas_fame_levels[user_expertise] = fame_level
-    for post_expertise_area in _expertise_areas:
-        post_expertise_area = post_expertise_area["expertise_area"]
-        # check if post expertise area is in user expertise areas
-        # and check if user expertise is negative for the expertise area in question
-        if (
-            post_expertise_area in user_expertise_areas_fame_levels
-            and user_expertise_areas_fame_levels[post_expertise_area] < 0
-        ):
-            post.published = False
+    expertise_labels = [epa["expertise_area"] for epa in _expertise_areas]
+
+    has_negative_fame = Fame.objects.filter(
+        user=post.author,
+        expertise_area__label__in=expertise_labels,
+        fame_level__numeric_value__lt=0,
+    ).exists()
+
+    if has_negative_fame:
+        post.published = False
 
     # T2
+    # get the user_expertise areas of a user
+    user_expertise_areas = list(user.expertise_area.all())
+
     for post_expertise_area in _expertise_areas:
         post_expertise_area, post_truth_rating = (
             post_expertise_area["expertise_area"],
@@ -356,6 +343,8 @@ def similar_users(user: SocialNetworkUsers):
     # T5
     _E_i = user.expertise_area.all()
     size_E_i = len(_E_i)
+    if size_E_i == 0:
+        return list(FameUsers.objects.none())
 
     def f(user: FameUsers, e: ExpertiseAreas) -> float:
         try:
