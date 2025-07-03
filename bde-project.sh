@@ -1,5 +1,5 @@
 PROJECT_DIR="$HOME/Documents/uni-semester-projects/bde/project/"
-TMUX_SESSION_NAME="bde-project"
+TMUX_SESSION_NAME="project"
 TMUX_WINDOW_NAME="dev"
 TMUX_WINDOW_NAME2="test"
 
